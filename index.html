@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Accessible Rides — Taxi Landing (Behance-style)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      /* All your existing styles remain the same */
+      .tag-badge { background: rgba(0,0,0,0.7); color:#fff; }
+      html[data-theme='light'] .tag-badge {
+        background: rgba(255,255,255,0.92) !important;
+        color:#000 !important;
+        border-color: rgba(0,0,0,0.12) !important;
+      }
+      html.a11y .tag-badge {
+        background: #fff2a8 !important;
+        color:#000 !important;
+        border-color:#000 !important;
+      }
+
+      :root {
+        --taxi: #ffd339;
+        --taxi-2: #ffbb00;
+        --ink: #0b0d12;
+        --muted: #8b93a7;
+        --card: rgba(255,255,255,0.06);
+      }
+
+      body {
+        background: radial-gradient(1200px 600px at 80% -10%, rgba(255, 211, 57, 0.12), rgba(255, 211, 57, 0) 55%), #0b0d12;
+        color: #e5e7eb;
+      }
+
+      .container-hero {
+        background: linear-gradient(160deg, rgba(255, 211, 57, 0.12) 0%, rgba(255, 211, 57, 0.06) 30%, rgba(255,255,255,0) 60%);
+      }
+
+      .glass {
+        background: var(--card);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .brand-btn {
+        background: linear-gradient(90deg, var(--taxi), var(--taxi-2));
+        color: #0b0d12;
+        transition: transform .2s ease, box-shadow .2s ease;
+      }
+      .brand-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(255, 204, 0, .25); }
+      .brand-btn:active { transform: translateY(0); }
+
+      .checker {
+        --size: 14px;
+        background-size: calc(var(--size) * 2) var(--size);
+        background-image: linear-gradient(45deg, #000 25%, transparent 25%),
+                          linear-gradient(-45deg, #000 25%, transparent 25%),
+                          linear-gradient(45deg, transparent 75%, #000 75%),
+                          linear-gradient(-45deg, transparent 75%, #000 75%);
+        background-position: 0 0, 0 0, var(--size) var(--size), var(--size) var(--size);
+        background-color: var(--taxi);
+      }
+
+      .hero-art {
+        background-image: url('https://images.unsplash.com/photo-1518306727298-4c17e1bf6942?q=80&w=1600&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        border-radius: 1rem;
+        min-height: 280px;
+        position: relative;
+      }
+      .hero-art::after{
+        content: "";
+        position:absolute;
+        inset:0;
+        border-radius: 1rem;
+        background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.25) 40%, rgba(0,0,0,.5));
+      }
+
+      .card { border-radius: 1rem; }
+
+      .input {
+        background: rgba(255,255,255,0.9);
+        color: #0b0d12;
+        border: 1px solid rgba(2, 6, 23, 0.25);
+        border-radius: .75rem;
+      }
+
+      .accent-underline {
+        position: relative;
+      }
+      .accent-underline::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -8px;
+        height: 6px;
+        width: 72px;
+        background: linear-gradient(90deg, var(--taxi), var(--taxi-2));
+        border-radius: 999px;
+      }
+
+      .tiny { letter-spacing: .08em; font-variant: all-small-caps; }
+
+      /* Map container styles */
+      #routeMap {
+        height: 400px;
+        border-radius: 1rem;
+        margin-top: 1rem;
+        z-index: 1;
+      }
+
+      .leaflet-container {
+        background: #1a1d24 !important;
+      }
+
+      html[data-theme='light'] #routeMap .leaflet-container {
+        background: #f8f9fa !important;
+      }
+
+      /* Autocomplete dropdown */
+      .autocomplete-items {
+        position: absolute;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-bottom: none;
+        border-top: none;
+        z-index: 99;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(11, 13, 18, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 0 0 .75rem .75rem;
+        overflow: hidden;
+      }
+
+      html[data-theme='light'] .autocomplete-items {
+        background: rgba(255,255,255,0.95);
+        border-color: rgba(0,0,0,0.2);
+      }
+
+      .autocomplete-items div {
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.875rem;
+        color: #e5e7eb;
+      }
+
+      html[data-theme='light'] .autocomplete-items div {
+        color: #0b0d12;
+        border-bottom-color: rgba(0,0,0,0.1);
+      }
+
+      .autocomplete-items div:hover {
+        background: rgba(255, 211, 57, 0.2);
+      }
+
+      .autocomplete-active {
+        background: rgba(255, 211, 57, 0.3) !important;
+      }
+
+      /* Input wrapper for autocomplete */
+      .autocomplete {
+        position: relative;
+      }
+
+      /* Payment Modal */
+      .payment-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+      }
+
+      .payment-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--card);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 1rem;
+        padding: 2rem;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      html[data-theme='light'] .payment-modal-content {
+        background: rgba(255,255,255,0.95);
+        border-color: rgba(0,0,0,0.1);
+      }
+
+      .close-modal {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: currentColor;
+        cursor: pointer;
+      }
+
+      /* Payment form styles */
+      .payment-form {
+        margin-top: 1.5rem;
+      }
+
+      .payment-amount {
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        color: var(--taxi);
+      }
+
+      .form-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .form-group {
+        flex: 1;
+      }
+
+      .form-group.half {
+        flex: 0.5;
+      }
+
+      .card-icons {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .card-icon {
+        width: 40px;
+        height: 25px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+
+      /* Loading spinner */
+      .spinner {
+        border: 3px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top: 3px solid var(--taxi);
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Test card info */
+      .test-card-info {
+        background: rgba(255, 211, 57, 0.1);
+        border: 1px solid var(--taxi);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+      }
+
+      .test-card-info h4 {
+        color: var(--taxi);
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+      }
+
+      /* THEME + ACCESSIBILITY */
+      html[data-theme='dark'] { color-scheme: dark; }
+      html[data-theme='light'] { color-scheme: light; }
+
+      /* Light theme tokens override */
+      html[data-theme='light'] body {
+        background: radial-gradient(1200px 600px at 80% -10%, rgba(255, 211, 57, 0.18), rgba(255, 211, 57, 0) 55%), #f6f7fb;
+        color: #0b0d12;
+      }
+      html[data-theme='light'] .glass {
+        background: rgba(255,255,255,0.8);
+        border-color: rgba(2,6,23,0.08);
+      }
+      html[data-theme='light'] .brand-btn { color: #0b0d12; }
+      html[data-theme='light'] header { background: rgba(255,255,255,.75); }
+      html[data-theme='light'] .hero-art::after {
+        background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.15) 40%, rgba(0,0,0,.3));
+      }
+
+      /* Low-vision / Accessibility mode */
+      html.a11y { font-size: 18px; letter-spacing: 0.2px; }
+      html.a11y body { line-height: 1.7; }
+      html.a11y .brand-btn {
+        box-shadow: 0 0 0 3px #000 inset, 0 10px 24px rgba(255,204,0,.35);
+      }
+      html.a11y .glass {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.6);
+      }
+      html[data-theme='light'].a11y .glass {
+        background: rgba(255,255,255,0.95);
+        border-color: rgba(2,6,23,0.4);
+      }
+      html.a11y a, html.a11y button { outline: 3px solid transparent; }
+      html.a11y :focus-visible { outline: 3px solid var(--taxi-2); outline-offset: 3px; border-radius: 8px; }
+      html.a11y .input { font-size: 1rem; padding: .9rem 1rem; }
+      html.a11y .checker { --size: 16px; }
+      html.a11y .tiny { letter-spacing: .12em; }
+      html.a11y * { text-decoration-thickness: from-font; }
+
+      /* Better focus for all users */
+      :focus-visible { outline: 2px solid var(--taxi); outline-offset: 2px; }
+
+      /* Reduced motion friendly */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      .sr-only-focusable:not(:focus):not(:focus-within) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* --- Overrides per your requests --- */
+      html[data-theme='light'] body { color: #0b0d12 !important; }
+      html[data-theme='light'] [class*="text-white"] {
+        color: #0b0d12 !important;
+        opacity: 1 !important;
+      }
+      html[data-theme='light'] .brand-btn { color: #0b0d12 !important; }
+      html[data-theme='light'] header { color: #0b0d12; }
+      html[data-theme='light'] a { color: #0b0d12; }
+
+      /* A11y mode */
+      html.a11y { font-size: 20px; letter-spacing: 0.06em; }
+      html.a11y body {
+        background: #fff8d8 !important;
+        color: #000 !important;
+        line-height: 1.8;
+      }
+      html.a11y [class*="text-white"],
+      html.a11y :where(h1,h2,h3,h4,h5,h6,p,div,span,small,li,dd,dt,label,a,button){
+        color: #000 !important;
+      }
+      html.a11y .checker { background-color: #ffe07a; }
+      html.a11y .brand-btn {
+        background: linear-gradient(90deg, #ffe07a, #ffd34d) !important;
+        color: #000 !important;
+        box-shadow: 0 0 0 3px #000 inset, 0 14px 32px rgba(255, 211, 77, .35);
+      }
+      html.a11y .glass {
+        background: rgba(255,255,255,0.96) !important;
+        border-color: rgba(0,0,0,0.12) !important;
+      }
+      html.a11y .hero-art::after {
+        background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.10) 40%, rgba(0,0,0,.18));
+      }
+      html.a11y .card { border-radius: 1.2rem; }
+
+      /* Bigger interactive targets */
+      html.a11y button,
+      html.a11y select,
+      html.a11y input { min-height: 54px; }
+      html.a11y .brand-btn {
+        padding: 1rem 1.25rem !important;
+        font-size: 1.125rem !important;
+        border-radius: 0.9rem !important;
+      }
+      html.a11y .input {
+        font-size: 1.125rem !important;
+        padding: 1rem 1rem !important;
+      }
+
+      /* Strong, high-contrast focus */
+      html.a11y :focus-visible {
+        outline: 4px solid #000 !important;
+        outline-offset: 4px !important;
+        border-radius: 10px;
+      }
+
+      /* Trip type pills */
+      .trip-options .trip-pill { transition: all .18s ease; }
+      html[data-theme='dark'] .trip-options .trip-pill {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.15);
+      }
+      .trip-options .trip-pill:hover {
+        transform: translateY(-1px);
+        border-color: rgba(255,255,255,0.35);
+      }
+      .trip-options .trip-pill:has(input:checked) {
+        background: linear-gradient(90deg, var(--taxi), var(--taxi-2));
+        color: #0b0d12;
+        border-color: transparent;
+        box-shadow: 0 8px 24px rgba(255, 204, 0, .25);
+      }
+      .trip-options .trip-pill:has(input:checked) span {
+        color: #0b0d12 !important;
+        font-weight: 700;
+      }
+
+      /* A11y (eye) toggle button */
+      #toggle-a11y {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+      }
+      #toggle-a11y svg { width: 22px; height: 22px; }
+      #toggle-a11y .icon-text {
+        position: absolute;
+        bottom: 4px;
+        right: 5px;
+        font-size: 10px;
+        font-weight: 800;
+        color: #fff !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,.35);
+      }
+      #toggle-a11y.a11y-active {
+        box-shadow: 0 0 0 3px rgba(255,255,255,.35) inset,
+                    0 10px 28px rgba(255,255,255,.18);
+        border-color: rgba(255,255,255,0.6) !important;
+      }
+
+      html.a11y #toggle-theme { opacity: .4; pointer-events: none; }
+
+      html[data-theme='light'] #toggle-a11y .icon-text {
+        color: #000 !important;
+        text-shadow: none;
+      }
+      html[data-theme='dark'] #toggle-a11y .icon-text { color: #fff !important; }
+      html.a11y #toggle-a11y .icon-text {
+        color: #000 !important;
+        text-shadow: none;
+      }
+
+      html.a11y header {
+        background: #ffffff !important;
+        border-bottom: 1px solid #000 !important;
+      }
+      html.a11y .accent-underline::after { content: none !important; }
+
+      #book label,
+      #book .form-label { font-size: 1rem; letter-spacing: .02em; }
+      html.a11y #book label,
+      html.a11y #book .form-label { font-size: 1.2rem; letter-spacing: .04em; }
+    </style>
+  </head>
+
+  <body class="antialiased" data-theme="dark">
+    <a href="#book" class="sr-only-focusable bg-black/80 text-white px-3 py-2 m-2 inline-block rounded">Skip to booking</a>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-[rgba(11,13,18,.75)] backdrop-blur border-b border-white/5">
+      <div
+        class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3 sm:gap-4"
+        role="navigation"
+        aria-label="Primary"
+      >
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="checker w-8 h-8 rounded flex-shrink-0" aria-hidden="true"></div>
+          <div class="truncate">
+            <div class="text-white font-extrabold tracking-tight text-lg sm:text-xl leading-tight">
+              Accessible Rides
+            </div>
+            <div class="text-[11px] text-white/60 -mt-0.5 truncate">
+              Wheelchair-accessible taxis
+            </div>
+          </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8 text-sm text-white/80" aria-label="Site">
+          <a href="#book" class="hover:text-white">Book</a>
+          <a href="#features" class="hover:text-white">Features</a>
+          <a href="#how" class="hover:text-white">How it works</a>
+          <a href="#testimonials" class="hover:text-white">Reviews</a>
+          <a href="#footer" class="hover:text-white">Contact</a>
+        </nav>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button
+            id="toggle-theme"
+            class="rounded-lg px-3 py-2 border border-white/10 text-xs sm:text-sm font-semibold hover:border-white/30"
+            aria-pressed="false"
+            aria-label="Toggle light or dark theme"
+          >
+            Light
+          </button>
+          <button
+            id="toggle-a11y"
+            class="rounded-lg border border-white/10 hover:border-white/30 flex-shrink-0"
+            aria-pressed="false"
+            aria-label="Toggle high-visibility mode"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="icon-text">A</span>
+          </button>
+          <a
+            href="#book"
+            class="brand-btn px-4 py-2 rounded-lg font-bold text-sm md:text-base flex-shrink-0"
+          >
+            Book now
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="container-hero">
+      <div class="max-w-6xl mx-auto px-4 pt-8 md:pt-14 pb-10 md:pb-16">
+        <div class="grid md:grid-cols-2 gap-8 items-stretch">
+          <div class="flex flex-col justify-center order-2 md:order-1">
+            <h1 class="text-2xl sm:text-3xl md:text-5xl font-extrabold text-white leading-tight">
+              On-demand <span class="accent-underline">Accessible Taxi</span> for Your City
+            </h1>
+            <p class="text-white/70 mt-4 text-sm sm:text-base md:text-lg max-w-xl">
+              Same-day wheelchair-friendly rides with trained drivers and secure tie-downs.
+              Clean vehicle, smooth boarding, safe arrival.
+            </p>
+            <div class="flex flex-wrap gap-3 mt-6">
+              <a
+                href="#book"
+                class="brand-btn rounded-xl px-5 py-3 font-bold text-sm sm:text-base"
+              >
+                Book a ride
+              </a>
+              <a
+                href="#features"
+                class="rounded-xl px-5 py-3 font-semibold border border-white/10 hover:border-white/30 text-sm sm:text-base"
+              >
+                Learn more
+              </a>
+            </div>
+
+            <!-- Stats row -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+              <div class="glass card p-4">
+                <div class="text-xl sm:text-2xl font-extrabold text-white">1</div>
+                <div class="text-xs text-white/60 mt-1">Available cars today</div>
+              </div>
+              <div class="glass card p-4">
+                <div class="text-xl sm:text-2xl font-extrabold text-white">30 min</div>
+                <div class="text-xs text-white/60 mt-1">Min. rental time</div>
+              </div>
+              <div class="glass card p-4">
+                <div class="text-xl sm:text-2xl font-extrabold text-white">5★</div>
+                <div class="text-xs text-white/60 mt-1">Rider satisfaction</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero art + inline booking card -->
+          <div class="relative order-1 md:order-2">
+            <div class="hero-art"></div>
+
+            <!-- Booking card overlay -->
+            <div
+              id="book"
+              class="glass card -mt-8 sm:-mt-10 relative z-10 p-4 md:p-6 shadow-xl border border-white/10 max-w-full"
+              aria-labelledby="quick-booking-heading"
+              role="region"
+            >
+              <div class="sr-only" aria-live="polite" id="availability-live">Availability ready</div>
+              <div class="flex items-center justify-between gap-3">
+                <h2
+                  id="quick-booking-heading"
+                  class="text-white font-bold text-base sm:text-lg truncate"
+                >
+                  Quick booking
+                </h2>
+                <div
+                  class="rounded-full px-3 py-1 text-xs font-bold text-white tag-badge backdrop-blur-sm border border-white/30 shadow-lg flex-shrink-0"
+                >
+                  Today
+                </div>
+              </div>
+
+              <form id="booking-form" class="mt-4">
+                <div class="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-white/70 text-xs">Start time</label>
+                    <select id="slot-start" required class="input w-full mt-1 px-3 py-2"></select>
+                  </div>
+                  <div>
+                    <label class="text-white/70 text-xs">End time</label>
+                    <select id="slot-end" required disabled class="input w-full mt-1 px-3 py-2"></select>
+                  </div>
+                </div>
+
+                <div class="mt-3 autocomplete">
+                  <label class="text-white/70 text-xs">Pickup</label>
+                  <input
+                    id="pickup"
+                    required
+                    type="text"
+                    placeholder="Street, building, entrance"
+                    class="input w-full mt-1 px-3 py-2"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="mt-3 autocomplete">
+                  <label class="text-white/70 text-xs">Dropoff</label>
+                  <input
+                    id="dropoff"
+                    required
+                    type="text"
+                    placeholder="Destination address"
+                    class="input w-full mt-1 px-3 py-2"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="mt-3">
+                  <span class="form-label text-white/90 text-sm">Trip type</span>
+                  <div class="mt-2 flex flex-wrap gap-3 trip-options">
+                    <label
+                      class="trip-pill flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 cursor-pointer"
+                      role="radio"
+                    >
+                      <input
+                        type="radio"
+                        name="tripType"
+                        value="one-way"
+                        class="accent-black"
+                        checked
+                      />
+                      <span class="text-sm">One-way</span>
+                    </label>
+                    <label
+                      class="trip-pill flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 cursor-pointer"
+                      role="radio"
+                    >
+                      <input
+                        type="radio"
+                        name="tripType"
+                        value="round-trip"
+                        class="accent-black"
+                      />
+                      <span class="text-sm">Round-trip</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="submit"
+                    class="brand-btn rounded-xl px-5 py-3 font-extrabold flex-1 text-sm sm:text-base"
+                    id="confirm-book-btn"
+                  >
+                    Confirm & Book
+                  </button>
+                  <button
+                    id="clear-day"
+                    type="button"
+                    class="rounded-xl px-5 py-3 font-semibold border border-white/10 text-sm sm:text-base"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <p class="text-[11px] text-white/50 mt-2">
+                  A 30-minute buffer is enforced between rides.
+                </p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Route Map Section -->
+    <section id="route-section" class="max-w-6xl mx-auto px-4 py-8">
+      <div class="glass card p-6">
+        <h2 class="text-white font-bold text-xl mb-4">Route Preview</h2>
+        <div id="routeMap"></div>
+        <p class="text-white/60 text-sm mt-3">
+          Enter pickup and dropoff addresses to see the route on the map.
+        </p>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="wave">
+      <div class="max-w-6xl mx-auto px-4 py-12 md:py-20">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="glass card p-5 sm:p-6">
+            <div class="checker w-10 h-3 rounded mb-3"></div>
+            <h3 class="text-white font-bold text-lg">Safety & Comfort</h3>
+            <p class="text-white/70 text-sm mt-1">
+              Secured wheelchair tie-downs, belts, ramp assistance. Fresh interior and professional etiquette.
+            </p>
+          </div>
+          <div class="glass card p-5 sm:p-6">
+            <div class="checker w-10 h-3 rounded mb-3"></div>
+            <h3 class="text-white font-bold text-lg">Same-day Availability</h3>
+            <p class="text-white/70 text-sm mt-1">
+              Book for today in minutes. Minimum slot 30 minutes, flexible extensions.
+            </p>
+          </div>
+          <div class="glass card p-5 sm:p-6">
+            <div class="checker w-10 h-3 rounded mb-3"></div>
+            <h3 class="text-white font-bold text-lg">Trained Drivers</h3>
+            <p class="text-white/70 text-sm mt-1">
+              Courteous, trained in assistance and secure boarding. Punctual pickup & dropoff.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="relative">
+      <div class="max-w-6xl mx-auto px-4 py-12 md:py-20">
+        <div class="md:flex md:items-center md:justify-between gap-4">
+          <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">How it works</h2>
+          <div
+            class="hidden md:inline-flex rounded-full px-4 py-2 text-xs font-bold text-white tag-badge backdrop-blur-sm border border-white/30 shadow-lg tiny"
+          >
+            simple steps
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div class="glass card p-5 sm:p-6">
+            <div class="text-2xl sm:text-3xl font-extrabold text-white">1</div>
+            <p class="text-white/70 text-sm mt-2">
+              Choose start and end time. The system filters out conflicts automatically.
+            </p>
+          </div>
+          <div class="glass card p-5 sm:p-6">
+            <div class="text-2xl sm:text-3xl font-extrabold text-white">2</div>
+            <p class="text-white/70 text-sm mt-2">
+              Enter pickup and destination. Pick one-way or round-trip.
+            </p>
+          </div>
+          <div class="glass card p-5 sm:p-6">
+            <div class="text-2xl sm:text-3xl font-extrabold text-white">3</div>
+            <p class="text-white/70 text-sm mt-2">
+              Confirm. We notify dispatch and hold a 30-minute buffer after your ride.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials">
+      <div class="max-w-6xl mx-auto px-4 py-12 md:py-20">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">
+          What riders say
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div class="glass card p-5 sm:p-6">
+            <p class="text-white/80 text-sm">
+              "Super smooth ramp and very kind driver. The interior was spotless. Booked in 2 minutes."
+            </p>
+            <div class="mt-4 text-white/60 text-xs">— Anna, caregiver</div>
+          </div>
+          <div class="glass card p-5 sm:p-6">
+            <p class="text-white/80 text-sm">
+              "Finally a service that respects time windows. The 30-min slot works well for hospital visits."
+            </p>
+            <div class="mt-4 text-white/60 text-xs">— Michael</div>
+          </div>
+          <div class="glass card p-5 sm:p-6">
+            <p class="text-white/80 text-sm">
+              "Easy booking and clear pricing. I felt safe and supported throughout the trip."
+            </p>
+            <div class="mt-4 text-white/60 text-xs">— Sofia</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="footer" class="border-t border-white/5">
+      <div class="max-w-6xl mx-auto px-4 py-10">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <div class="checker w-7 h-7 rounded"></div>
+              <div class="text-white font-extrabold">Accessible Rides</div>
+            </div>
+            <p class="text-white/60 text-sm mt-3">
+              Prototype stores bookings locally for today's date. Stripe payment will be added at the final step.
+            </p>
+          </div>
+          <div>
+            <div class="text-white font-semibold">Company</div>
+            <ul class="mt-2 text-white/60 text-sm space-y-1">
+              <li><a href="#features" class="hover:text-white">Features</a></li>
+              <li><a href="#how" class="hover:text-white">How it works</a></li>
+              <li><a href="#testimonials" class="hover:text-white">Reviews</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="text-white font-semibold">Support</div>
+            <ul class="mt-2 text-white/60 text-sm space-y-1">
+              <li>Support: support@example.com</li>
+              <li>Dispatch: +1 (000) 555-0123</li>
+              <li class="pt-2 font-semibold text-white">Developers:</li>
+              <li>Arina Tit</li>
+              <li>Yulia Yoschik</li>
+              <li>Ivan Surovyi</li>
+              <li>Alexander Chizh</li>
+            </ul>
+          </div>
+          <div>
+            <div class="text-white font-semibold">Availability</div>
+            <div
+              class="mt-2 rounded-full px-3 py-1 text-xs font-bold text-white tag-badge backdrop-blur-sm border border-white/30 shadow-lg inline-block"
+            >
+              Today: 1 car
+            </div>
+          </div>
+        </div>
+        <div class="text-white/50 text-xs mt-8">© 2025 Accessible Rides</div>
+      </div>
+    </footer>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="payment-modal">
+      <div class="payment-modal-content">
+        <button class="close-modal" id="close-payment-modal">&times;</button>
+        <h2 class="text-white font-bold text-xl mb-2">Complete Payment</h2>
+        
+        <div class="payment-amount" id="payment-amount">$25.00</div>
+        
+        <form id="payment-form" class="payment-form">
+          <div class="form-group">
+            <label class="text-white/70 text-xs">Card Number</label>
+            <input
+              type="text"
+              id="card-number"
+              placeholder="1234 5678 9012 3456"
+              class="input w-full mt-1 px-3 py-2"
+              maxlength="19"
+              required
+            />
+            <div class="card-icons">
+              <div class="card-icon">VISA</div>
+              <div class="card-icon">MC</div>
+              <div class="card-icon">AMEX</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="text-white/70 text-xs">Expiration Date</label>
+              <input
+                type="text"
+                id="card-expiry"
+                placeholder="MM/YY"
+                class="input w-full mt-1 px-3 py-2"
+                maxlength="5"
+                required
+              />
+            </div>
+            <div class="form-group half">
+              <label class="text-white/70 text-xs">CVC</label>
+              <input
+                type="text"
+                id="card-cvc"
+                placeholder="123"
+                class="input w-full mt-1 px-3 py-2"
+                maxlength="4"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="text-white/70 text-xs">Cardholder Name</label>
+            <input
+              type="text"
+              id="card-name"
+              placeholder="John Doe"
+              class="input w-full mt-1 px-3 py-2"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="text-white/70 text-xs">Email for receipt</label>
+            <input
+              type="email"
+              id="card-email"
+              placeholder="john@example.com"
+              class="input w-full mt-1 px-3 py-2"
+              required
+            />
+          </div>
+
+          <div class="test-card-info">
+            <h4>💳 Test Card Information</h4>
+            <p><strong>Card Number:</strong> 4242 4242 4242 4242</p>
+            <p><strong>Expiry:</strong> Any future date (e.g., 12/28)</p>
+            <p><strong>CVC:</strong> Any 3 digits (e.g., 123)</p>
+          </div>
+
+          <button
+            type="submit"
+            id="submit-payment"
+            class="brand-btn w-full mt-6 py-3 rounded-xl font-bold"
+          >
+            Pay Now
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Enhanced JavaScript with Maps, Autocomplete and Custom Payment Form -->
+    <script>
+      (function () {
+        const START_HOUR = 11;
+        const END_HOUR = 21;
+        const INTERVAL_MIN = 30;
+
+        const TELEGRAM_TOKEN = "8277948922:AAF7fo913Xin4Vp_iyYV0zD2bZCbGVr9zwc";
+        const TELEGRAM_CHAT_ID = "678079770";
+
+        // Map variables
+        let map = null;
+        let routeLayer = null;
+        let pickupMarker = null;
+        let dropoffMarker = null;
+
+        // Current booking data
+        let currentBooking = null;
+
+        function zeroPad(n) { return n.toString().padStart(2, '0'); }
+        function todayKey(){
+          const d = new Date();
+          return `bookings-${d.getFullYear()}-${zeroPad(d.getMonth()+1)}-${zeroPad(d.getDate())}`;
+        }
+        function loadBookings(){
+          try { return JSON.parse(localStorage.getItem(todayKey())||'[]'); }
+          catch(e){ return []; }
+        }
+        function saveBookings(b){ localStorage.setItem(todayKey(), JSON.stringify(b)); }
+        function formatTime(d){
+          return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        }
+        function overlaps(aStart,aEnd,bStart,bEnd){
+          return aStart < bEnd && bStart < aEnd;
+        }
+
+        function isIntervalValid(startDate, endDate, bookings){
+          for(const b of bookings){
+            const bStart = new Date(b.startISO);
+            const bEnd = new Date(b.endISO);
+            const bEndWithBuffer = new Date(bEnd.getTime() + INTERVAL_MIN*60*1000);
+            if (overlaps(startDate, endDate, bStart, bEndWithBuffer)) return false;
+          }
+          return true;
+        }
+
+        function generateSlots(){
+          const slots = [];
+          const base = new Date(); base.setHours(0,0,0,0);
+          for(let minutes = START_HOUR*60; minutes <= END_HOUR*60; minutes += INTERVAL_MIN){
+            const d = new Date(base.getTime() + minutes*60000);
+            slots.push(d);
+          }
+          return slots;
+        }
+
+        function populateStartSelect(){
+          const startSel = document.getElementById('slot-start');
+          const endSel = document.getElementById('slot-end');
+          startSel.innerHTML = ''; endSel.innerHTML=''; endSel.disabled = true;
+
+          const slots = generateSlots();
+          const bookings = loadBookings();
+
+          let firstEnabled = null;
+          for(const s of slots){
+            const tooLate = (s.getHours()*60 + s.getMinutes()) > (END_HOUR*60 - INTERVAL_MIN);
+            const opt = document.createElement('option');
+            opt.value = s.toISOString();
+            opt.textContent = formatTime(s);
+
+            if (tooLate){
+              opt.disabled = true;
+              opt.textContent += ' — unavailable';
+            } else {
+              let hasEnd = false;
+              for(const e of slots){
+                if (e.getTime() <= s.getTime()) continue;
+                if (e.getTime() - s.getTime() < INTERVAL_MIN*60000) continue;
+                if (isIntervalValid(s, e, bookings)){ hasEnd = true; break; }
+              }
+              if (!hasEnd){
+                opt.disabled = true;
+                opt.textContent += ' — unavailable';
+              }
+            }
+            startSel.appendChild(opt);
+            if(!opt.disabled && !firstEnabled) firstEnabled = opt;
+          }
+          if (firstEnabled){
+            startSel.value = firstEnabled.value;
+            populateEndSelect(firstEnabled.value);
+          }
+        }
+
+        function populateEndSelect(startISO){
+          const endSel = document.getElementById('slot-end');
+          endSel.innerHTML = ''; endSel.disabled = true;
+          if(!startISO) return;
+
+          const startDate = new Date(startISO);
+          const slots = generateSlots();
+          const bookings = loadBookings();
+
+          let firstValid = null;
+          for(const e of slots){
+            if (e.getTime() <= startDate.getTime()) continue;
+            if (e.getTime() - startDate.getTime() < INTERVAL_MIN*60000) continue;
+            if (e.getHours() > END_HOUR) continue;
+            if (isIntervalValid(startDate, e, bookings)){
+              const opt = document.createElement('option');
+              opt.value = e.toISOString();
+              opt.textContent = formatTime(e);
+              endSel.appendChild(opt);
+              if(!firstValid) firstValid = opt;
+            }
+          }
+          if (firstValid){
+            endSel.disabled = false;
+            firstValid.selected = true;
+          } else {
+            const opt = document.createElement('option');
+            opt.textContent='No available end times';
+            opt.disabled = true;
+            endSel.appendChild(opt);
+            endSel.disabled = true;
+          }
+        }
+
+        function sendTelegramNotification(booking){
+          try {
+            const text =
+              `✅ *New booking*\nFrom: ${booking.pickup}\nTo: ${booking.dropoff}` +
+              `\nTime: ${formatTime(new Date(booking.startISO))} - ${formatTime(new Date(booking.endISO))}` +
+              `\nType: ${booking.tripType}\nAmount: $${calculatePrice(booking.startISO, booking.endISO)}` +
+              `\nEmail: ${booking.email}`;
+            fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode:'Markdown' })
+            });
+          } catch(e){ console.warn('telegram error', e); }
+        }
+
+        // ========== PAYMENT FUNCTIONS ==========
+        function calculatePrice(startISO, endISO) {
+          const start = new Date(startISO);
+          const end = new Date(endISO);
+          const hours = (end - start) / (1000 * 60 * 60);
+          // Base price: $20 per hour + $5 base fee
+          return Math.round((hours * 20 + 5) * 100) / 100;
+        }
+
+        function formatCardNumber(value) {
+          return value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
+        }
+
+        function formatExpiry(value) {
+          return value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2');
+        }
+
+        function validateCardNumber(number) {
+          const cleanNumber = number.replace(/\s/g, '');
+          return cleanNumber.length === 16 && /^\d+$/.test(cleanNumber);
+        }
+
+        function validateExpiry(expiry) {
+          const [month, year] = expiry.split('/');
+          if (!month || !year || month.length !== 2 || year.length !== 2) return false;
+          
+          const monthNum = parseInt(month);
+          const yearNum = parseInt('20' + year);
+          const currentYear = new Date().getFullYear();
+          const currentMonth = new Date().getMonth() + 1;
+          
+          if (monthNum < 1 || monthNum > 12) return false;
+          if (yearNum < currentYear) return false;
+          if (yearNum === currentYear && monthNum < currentMonth) return false;
+          
+          return true;
+        }
+
+        function validateCVC(cvc) {
+          return cvc.length >= 3 && cvc.length <= 4 && /^\d+$/.test(cvc);
+        }
+
+        function validateEmail(email) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        async function processPayment(paymentData) {
+          try {
+            // Simulate API call to process payment
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // In a real app, you would send this to your backend
+            // const response = await fetch('/process-payment', {
+            //   method: 'POST',
+            //   headers: { 'Content-Type': 'application/json' },
+            //   body: JSON.stringify(paymentData)
+            // });
+            
+            // For demo, simulate successful payment
+            return { 
+              success: true, 
+              paymentId: 'pay_' + Math.random().toString(36).substr(2, 9),
+              transactionId: 'txn_' + Math.random().toString(36).substr(2, 9)
+            };
+          } catch (error) {
+            return { success: false, error: 'Payment processing failed' };
+          }
+        }
+
+        function showPaymentModal(booking) {
+          currentBooking = booking;
+          const modal = document.getElementById('payment-modal');
+          const amount = calculatePrice(booking.startISO, booking.endISO);
+          
+          document.getElementById('payment-amount').textContent = `$${amount}`;
+          modal.style.display = 'block';
+          
+          // Reset form
+          document.getElementById('payment-form').reset();
+        }
+
+        function hidePaymentModal() {
+          const modal = document.getElementById('payment-modal');
+          modal.style.display = 'none';
+          currentBooking = null;
+        }
+
+        // ========== MAP FUNCTIONS ==========
+        function initMap() {
+          map = L.map('routeMap').setView([40.7128, -74.0060], 13);
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(map);
+        }
+
+        function clearMap() {
+          if (routeLayer) {
+            map.removeLayer(routeLayer);
+            routeLayer = null;
+          }
+          if (pickupMarker) {
+            map.removeLayer(pickupMarker);
+            pickupMarker = null;
+          }
+          if (dropoffMarker) {
+            map.removeLayer(dropoffMarker);
+            dropoffMarker = null;
+          }
+        }
+
+        async function updateRoute() {
+          const pickup = document.getElementById('pickup').value.trim();
+          const dropoff = document.getElementById('dropoff').value.trim();
+
+          if (!pickup || !dropoff) {
+            clearMap();
+            return;
+          }
+
+          try {
+            const pickupResp = await fetch(`/geocode?address=${encodeURIComponent(pickup)}`);
+            const pickupData = await pickupResp.json();
+            
+            if (pickupData.error) {
+              console.warn('Pickup geocode failed:', pickupData.error);
+              return;
+            }
+
+            const dropoffResp = await fetch(`/geocode?address=${encodeURIComponent(dropoff)}`);
+            const dropoffData = await dropoffResp.json();
+            
+            if (dropoffData.error) {
+              console.warn('Dropoff geocode failed:', dropoffData.error);
+              return;
+            }
+
+            const routeResp = await fetch(
+              `/route?start_lat=${pickupData.lat}&start_lon=${pickupData.lon}&end_lat=${dropoffData.lat}&end_lon=${dropoffData.lon}`
+            );
+            const routeData = await routeResp.json();
+
+            if (routeData.error) {
+              console.warn('Route calculation failed:', routeData.error);
+              return;
+            }
+
+            clearMap();
+
+            pickupMarker = L.marker([pickupData.lat, pickupData.lon])
+              .addTo(map)
+              .bindPopup('Pickup Location')
+              .openPopup();
+
+            dropoffMarker = L.marker([dropoffData.lat, dropoffData.lon])
+              .addTo(map)
+              .bindPopup('Dropoff Location');
+
+            routeLayer = L.polyline(routeData.coordinates, {
+              color: '#ffd339',
+              weight: 5,
+              opacity: 0.8
+            }).addTo(map);
+
+            const bounds = L.latLngBounds(routeData.coordinates);
+            map.fitBounds(bounds, { padding: [20, 20] });
+
+          } catch (error) {
+            console.error('Map update error:', error);
+          }
+        }
+
+        // ========== AUTOCOMPLETE FUNCTIONS ==========
+        function initAutocomplete(inputId) {
+          const input = document.getElementById(inputId);
+          let currentFocus;
+
+          input.addEventListener('input', async function(e) {
+            const val = this.value;
+            closeAllLists();
+            if (!val) return;
+
+            currentFocus = -1;
+
+            try {
+              const resp = await fetch(`/suggest?q=${encodeURIComponent(val)}`);
+              const suggestions = await resp.json();
+
+              const list = document.createElement('div');
+              list.setAttribute('id', this.id + 'autocomplete-list');
+              list.setAttribute('class', 'autocomplete-items');
+              this.parentNode.appendChild(list);
+
+              suggestions.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.innerHTML = `<strong>${item.label}</strong>`;
+                itemDiv.addEventListener('click', function() {
+                  input.value = item.label;
+                  closeAllLists();
+                  if (document.getElementById('pickup').value && document.getElementById('dropoff').value) {
+                    updateRoute();
+                  }
+                });
+                list.appendChild(itemDiv);
+              });
+            } catch (error) {
+              console.error('Autocomplete error:', error);
+            }
+          });
+
+          input.addEventListener('keydown', function(e) {
+            let list = document.getElementById(this.id + 'autocomplete-list');
+            if (list) list = list.getElementsByTagName('div');
+            if (e.keyCode == 40) {
+              currentFocus++;
+              addActive(list);
+            } else if (e.keyCode == 38) {
+              currentFocus--;
+              addActive(list);
+            } else if (e.keyCode == 13) {
+              e.preventDefault();
+              if (currentFocus > -1 && list) {
+                list[currentFocus].click();
+              }
+            }
+          });
+
+          function addActive(list) {
+            if (!list) return false;
+            removeActive(list);
+            if (currentFocus >= list.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (list.length - 1);
+            list[currentFocus].classList.add('autocomplete-active');
+          }
+
+          function removeActive(list) {
+            for (let i = 0; i < list.length; i++) {
+              list[i].classList.remove('autocomplete-active');
+            }
+          }
+
+          function closeAllLists(elmnt) {
+            const lists = document.getElementsByClassName('autocomplete-items');
+            for (let i = 0; i < lists.length; i++) {
+              if (elmnt != lists[i] && elmnt != input) {
+                lists[i].parentNode.removeChild(lists[i]);
+              }
+            }
+          }
+
+          document.addEventListener('click', function(e) {
+            closeAllLists(e.target);
+          });
+        }
+
+        // ========== EVENT LISTENERS ==========
+        document.addEventListener('change', (e)=>{
+          if (e.target && e.target.id === 'slot-start') populateEndSelect(e.target.value);
+        });
+
+        document.getElementById('clear-day').addEventListener('click', () => {
+          const pickup = document.getElementById('pickup');
+          const dropoff = document.getElementById('dropoff');
+          if (pickup) pickup.value = '';
+          if (dropoff) dropoff.value = '';
+
+          const oneWay = document.querySelector('input[name="tripType"][value="one-way"]');
+          if (oneWay) oneWay.checked = true;
+
+          populateStartSelect();
+          clearMap();
+
+          const live = document.getElementById('availability-live');
+          if (live) live.textContent = 'Form cleared';
+
+          alert('Form has been cleared. Bookings are kept.');
+        });
+
+        // Payment form events
+        document.getElementById('close-payment-modal').addEventListener('click', hidePaymentModal);
+        
+        // Format card number input
+        document.getElementById('card-number').addEventListener('input', function(e) {
+          this.value = formatCardNumber(e.target.value);
+        });
+
+        // Format expiry input
+        document.getElementById('card-expiry').addEventListener('input', function(e) {
+          this.value = formatExpiry(e.target.value);
+        });
+
+        // Payment form submission
+        document.getElementById('payment-form').addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const submitButton = document.getElementById('submit-payment');
+          const originalText = submitButton.textContent;
+          
+          // Get form data
+          const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+          const cardExpiry = document.getElementById('card-expiry').value;
+          const cardCVC = document.getElementById('card-cvc').value;
+          const cardName = document.getElementById('card-name').value;
+          const cardEmail = document.getElementById('card-email').value;
+          
+          // Validation
+          if (!validateCardNumber(cardNumber)) {
+            alert('Please enter a valid 16-digit card number');
+            return;
+          }
+          
+          if (!validateExpiry(cardExpiry)) {
+            alert('Please enter a valid expiration date (MM/YY)');
+            return;
+          }
+          
+          if (!validateCVC(cardCVC)) {
+            alert('Please enter a valid CVC (3-4 digits)');
+            return;
+          }
+          
+          if (!cardName.trim()) {
+            alert('Please enter cardholder name');
+            return;
+          }
+          
+          if (!validateEmail(cardEmail)) {
+            alert('Please enter a valid email address');
+            return;
+          }
+          
+          if (!currentBooking) {
+            alert('Booking information missing');
+            return;
+          }
+
+          // Show loading state
+          submitButton.disabled = true;
+          submitButton.textContent = 'Processing...';
+
+          try {
+            const paymentData = {
+              cardNumber: cardNumber,
+              cardExpiry: cardExpiry,
+              cardCVC: cardCVC,
+              cardName: cardName,
+              email: cardEmail,
+              amount: calculatePrice(currentBooking.startISO, currentBooking.endISO),
+              booking: currentBooking
+            };
+
+            const result = await processPayment(paymentData);
+            
+            if (result.success) {
+              // Complete the booking
+              const bookings = loadBookings();
+              const completeBooking = {
+                ...currentBooking,
+                paymentId: result.paymentId,
+                transactionId: result.transactionId,
+                amount: paymentData.amount,
+                email: cardEmail,
+                paid: true,
+                paymentDate: new Date().toISOString()
+              };
+              
+              bookings.push(completeBooking);
+              saveBookings(bookings);
+              sendTelegramNotification(completeBooking);
+              
+              hidePaymentModal();
+              
+              const startDate = new Date(currentBooking.startISO);
+              const endDate = new Date(currentBooking.endISO);
+              
+              alert(`✅ Payment Successful!\n\nBooking confirmed for ${formatTime(startDate)} - ${formatTime(endDate)}\nAmount: $${paymentData.amount}\nConfirmation sent to: ${cardEmail}`);
+              populateStartSelect();
+            } else {
+              alert('❌ Payment failed: ' + result.error);
+            }
+          } catch (error) {
+            alert('❌ Payment processing error: ' + error.message);
+          } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+          }
+        });
+
+        // THEME & ACCESSIBILITY TOGGLES
+        const themeBtn = document.getElementById('toggle-theme');
+        const a11yBtn = document.getElementById('toggle-a11y');
+        const THEME_KEY = 'ui-theme';
+        const A11Y_KEY = 'ui-a11y';
+
+        function applyTheme(t){
+          if (!t) {
+            document.documentElement.removeAttribute('data-theme');
+            return;
+          }
+          document.documentElement.setAttribute('data-theme', t);
+          themeBtn.textContent = (t==='light') ? 'Dark' : 'Light';
+          themeBtn.setAttribute('aria-pressed', String(t==='light'));
+        }
+        function applyA11y(on){
+          document.documentElement.classList.toggle('a11y', on);
+          a11yBtn.classList.toggle('a11y-active', on);
+          a11yBtn.setAttribute('aria-pressed', String(on));
+          if (on) {
+            localStorage.setItem(A11Y_KEY, 'on');
+            document.documentElement.removeAttribute('data-theme');
+            themeBtn.setAttribute('disabled', 'true');
+          } else {
+            localStorage.setItem(A11Y_KEY, 'off');
+            themeBtn.removeAttribute('disabled');
+            const saved = localStorage.getItem(THEME_KEY) || 'dark';
+            applyTheme(saved);
+          }
+        }
+
+        // Load saved
+        const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+        applyTheme(savedTheme);
+        applyA11y(localStorage.getItem(A11Y_KEY) === 'on');
+
+        themeBtn.addEventListener('click', ()=>{
+          if (document.documentElement.classList.contains('a11y')) return;
+          const current = document.documentElement.getAttribute('data-theme') || 'dark';
+          const next = current === 'dark' ? 'light' : 'dark';
+          localStorage.setItem(THEME_KEY, next);
+          applyTheme(next);
+        });
+
+        a11yBtn.addEventListener('click', ()=>{
+          const nowOn = !document.documentElement.classList.contains('a11y');
+          applyA11y(nowOn);
+        });
+
+        document.getElementById('booking-form').addEventListener('submit', async function(ev){
+          ev.preventDefault();
+          const startISO = document.getElementById('slot-start').value;
+          const endISO = document.getElementById('slot-end').value;
+          const pickup = document.getElementById('pickup').value.trim();
+          const dropoff = document.getElementById('dropoff').value.trim();
+          const tripType =
+            (document.querySelector('input[name="tripType"]:checked')?.value) || 'one-way';
+
+          if(!startISO || !endISO){
+            alert('Please choose a valid start and end time.');
+            return;
+          }
+          if(!pickup || !dropoff){
+            alert('Please enter pickup and dropoff addresses.');
+            return;
+          }
+
+          const bookings = loadBookings();
+          const startDate = new Date(startISO);
+          const endDate = new Date(endISO);
+
+          if(!isIntervalValid(startDate, endDate, bookings)){
+            alert('Selected time conflicts with an existing booking. Please choose another slot.');
+            return;
+          }
+
+          const newBooking = {
+            startISO,
+            endISO,
+            pickup,
+            dropoff,
+            tripType,
+            createdAt: new Date().toISOString()
+          };
+
+          // Show payment modal instead of immediately saving
+          showPaymentModal(newBooking);
+        });
+
+        // ========== INITIALIZATION ==========
+        function init() {
+          populateStartSelect();
+          initMap();
+          initAutocomplete('pickup');
+          initAutocomplete('dropoff');
+
+          document.getElementById('pickup').addEventListener('blur', updateRoute);
+          document.getElementById('dropoff').addEventListener('blur', updateRoute);
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', init);
+        } else {
+          init();
+        }
+
+        /* --- Dev self-tests --- */
+        (function devTests(){
+          try{
+            console.assert(typeof populateStartSelect === 'function', 'populateStartSelect missing');
+            const root = document.documentElement;
+            const prevTheme = root.getAttribute('data-theme') || 'dark';
+            applyTheme('light');
+            console.assert(root.getAttribute('data-theme') === 'light', 'Theme should switch to light');
+            applyA11y(true);
+            console.assert(root.classList.contains('a11y'), 'A11y should be on');
+            applyA11y(false);
+            applyTheme(prevTheme);
+            console.log('[Self-test] Basic UI toggles OK');
+          } catch(err){ console.warn('[Self-test] failed', err); }
+        })();
+      })();
+    </script>
+  </body>
+</html>
