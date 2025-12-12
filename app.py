@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 import requests
 import os
 import polyline
+import time
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -42,6 +43,11 @@ def geocode():
 
 @app.route('/route')
 def route():
+    """
+    /route?start_lat=..&start_lon=..&end_lat=..&end_lon=..
+    Возвращает список координат маршрута в формате:
+    { "coordinates": [[lat, lon], [lat, lon], ...] }
+    """
     try:
         start_lat = float(request.args.get('start_lat'))
         start_lon = float(request.args.get('start_lon'))
@@ -50,13 +56,14 @@ def route():
     except (TypeError, ValueError):
         return jsonify({'error': 'invalid_coordinates'}), 400
 
+    # OSRM demo-сервер (пешеходный/автомобильный маршрут — возьмём driving)
     osrm_url = (
         f"https://router.project-osrm.org/route/v1/driving/"
         f"{start_lon},{start_lat};{end_lon},{end_lat}"
     )
     params = {
         "overview": "full",
-        "geometries": "geojson"
+        "geometries": "geojson"  # получаем coords в формате [lon, lat]
     }
 
     try:
@@ -68,7 +75,10 @@ def route():
             return jsonify({'error': 'no_route'}), 404
 
         geometry = data["routes"][0]["geometry"]
+        # geometry: { "coordinates": [[lon, lat], ...], "type": "LineString" }
+
         coords_lonlat = geometry["coordinates"]
+        # Leaflet ждёт [lat, lon], поэтому меняем местами
         coords_latlon = [[lat, lon] for lon, lat in coords_lonlat]
 
         return jsonify({'coordinates': coords_latlon})
@@ -78,6 +88,14 @@ def route():
     
 @app.route('/suggest')
 def suggest():
+    """
+    /suggest?q=...
+    Возвращает список подсказок адресов:
+    [
+      {"label": "ul. ...", "lat": 52.23, "lon": 21.01},
+      ...
+    ]
+    """
     query = request.args.get('q', '').strip()
     if not query or len(query) < 3:
         return jsonify([])
@@ -90,6 +108,7 @@ def suggest():
         'addressdetails': 1
     }
     headers = {
+        # ОБЯЗАТЕЛЬНО укажи свой контакт, чтобы не банили
         'User-Agent': 'accessible-rides-demo/1.0 (your-email@example.com)'
     }
 
@@ -120,22 +139,39 @@ def process_payment():
     try:
         data = request.get_json()
         
-        # В реальном приложении здесь будет:
-        # 1. Валидация данных карты
-        # 2. Вызов платежного шлюза (Stripe, etc.)
-        # 3. Обработка ответа
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'}), 400
+            
+        # Проверяем обязательные поля
+        required_fields = ['cardNumber', 'cardExpiry', 'cardCVC', 'cardName', 'email', 'amount', 'booking']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'Missing field: {field}'}), 400
+        
+        # Проверяем данные бронирования
+        booking = data.get('booking', {})
+        if not booking.get('startISO') or not booking.get('endISO'):
+            return jsonify({'success': False, 'error': 'Invalid booking data'}), 400
+        
+        # Проверяем тестовые данные карты
+        card_number = data.get('cardNumber', '')
+        if card_number != '4242424242424242':
+            return jsonify({'success': False, 'error': 'Invalid card number. Use test card: 4242 4242 4242 4242'}), 400
+        
+        # Имитация обработки платежа
+        time.sleep(2)  # Имитация задержки обработки
         
         # Для демо просто возвращаем успех
         return jsonify({
             'success': True,
-            'paymentId': 'pay_' + str(hash(str(data)))[:16],
-            'transactionId': 'txn_' + str(hash(str(data)))[:16],
+            'paymentId': 'pay_' + str(abs(hash(str(data))))[:16],
+            'transactionId': 'txn_' + str(abs(hash(str(data))))[:16],
             'message': 'Payment processed successfully'
         })
         
     except Exception as e:
         print('Payment processing error:', e)
-        return jsonify({'success': False, 'error': 'Payment processing failed'}), 500
+        return jsonify({'success': False, 'error': f'Payment processing failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
