@@ -26,4 +26,8 @@ jobs:
           # Обновляем код из репозитория
           git pull origin main
           
-          
+          make setup
+
+          make restart
+
+          make status
