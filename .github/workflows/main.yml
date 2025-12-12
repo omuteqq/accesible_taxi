@@ -21,7 +21,7 @@ jobs:
         port: ${{ secrets.SERVER_PORT }}
         script: |
           # Переходим в директорию проекта
-          cd ~/metra
+          cd ~/accesible_taxi
           
           # Обновляем код из репозитория
           git pull origin main
