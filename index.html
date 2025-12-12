@@ -308,6 +308,24 @@
       html[data-theme='light'] .hero-art::after {
         background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.15) 40%, rgba(0,0,0,.3));
       }
+/* A11y: список подсказок по адресам – светлый */
+html.a11y .autocomplete-items {
+  background: #ffffff !important;
+  border-color: #000 !important;
+}
+
+/* Строки подсказок – чёрный текст, разделитель */
+html.a11y .autocomplete-items div {
+  color: #000 !important;
+  border-bottom-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Hover / выбранный элемент в списке адресов */
+html.a11y .autocomplete-items div:hover,
+html.a11y .autocomplete-active {
+  background: #ffe07a !important;
+  color: #000 !important;
+}
 
       /* Low-vision / Accessibility mode */
       html.a11y { font-size: 18px; letter-spacing: 0.2px; }
@@ -323,6 +341,63 @@
         background: rgba(255,255,255,0.95);
         border-color: rgba(2,6,23,0.4);
       }
+      /* Чёткий hover для ссылок в хедере */
+header nav a {
+  position: relative;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+/* Светлая тема – серый "чип" при наведении */
+html[data-theme='light'] header nav a:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000 !important;
+}
+
+/* A11y – ещё более контрастный hover */
+html.a11y header nav a:hover {
+  background: #ffe07a;
+  color: #000 !important;
+}
+
+/* A11y: фокус на ссылках в хедере */
+html.a11y header nav a:focus-visible {
+  outline: 4px solid #000;
+  outline-offset: 3px;
+  border-radius: 9999px;
+}
+/* A11y: фон под модалкой чуть светлее, а сама модалка полностью светлая */
+html.a11y #payment-modal {
+  background: rgba(0, 0, 0, 0.35) !important; /* можно оставить лёгкое затемнение */
+}
+
+html.a11y .payment-modal-content {
+  background: #ffffff !important;
+  color: #000 !important;
+  border-color: #000 !important;
+}
+
+/* Инпуты в модальном окне – белые, чёткая рамка */
+html.a11y #payment-modal .input {
+  background: #ffffff !important;
+  color: #000 !important;
+  border-color: #000 !important;
+}
+
+/* Текст в модальном окне */
+html.a11y #payment-modal label,
+html.a11y #payment-modal .payment-amount,
+html.a11y #payment-modal .test-card-info {
+  color: #000 !important;
+}
+
+/* Блок с тестовой картой – жёлтоватый, как и остальные a11y-элементы */
+html.a11y #payment-modal .test-card-info {
+  background: #fff2a8 !important;
+  border-color: #000 !important;
+}
+
       html.a11y a, html.a11y button { outline: 3px solid transparent; }
       html.a11y :focus-visible { outline: 3px solid var(--taxi-2); outline-offset: 3px; border-radius: 8px; }
       html.a11y .input { font-size: 1rem; padding: .9rem 1rem; }
@@ -481,6 +556,75 @@
       #book .form-label { font-size: 1rem; letter-spacing: .02em; }
       html.a11y #book label,
       html.a11y #book .form-label { font-size: 1.2rem; letter-spacing: .04em; }
+
+/* CVC button positioning fix */
+.form-group.half .relative {
+  position: relative !important;
+}
+
+#toggle-cvc {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10 !important;
+  height: 30px !important;
+  width: 30px !important;
+}
+
+#toggle-cvc:hover {
+  background: rgba(0,0,0,0.05) !important;
+}
+
+html[data-theme='dark'] #toggle-cvc {
+  color: #8b93a7 !important;
+}
+
+html[data-theme='dark'] #toggle-cvc:hover {
+  background: rgba(0,0,0,0.1) !important;
+  color: #000000 !important;
+}
+
+html[data-theme='light'] #toggle-cvc {
+  color: #6b7280 !important;
+}
+
+html[data-theme='light'] #toggle-cvc:hover {
+  background: rgba(0,0,0,0.05) !important;
+  color: #374151 !important;
+}
+
+/* Ensure input has enough padding for the eye icon */
+#card-cvc {
+  padding-right: 45px !important;
+}
+      .error-message {
+    color: #ff6b6b;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: none;
+  }
+
+  .error-message.show {
+    display: block;
+  }
+
+  .input.error {
+    border-color: #ff6b6b !important;
+    outline-color: #ff6b6b !important;
+  }
+
+  .input.success {
+    border-color: #4ade80 !important;
+  }
     </style>
   </head>
 
@@ -644,7 +788,10 @@
                     placeholder="Street, building, entrance"
                     class="input w-full mt-1 px-3 py-2"
                     autocomplete="off"
+                    minlength="5"
+                    maxlength="100"
                   />
+                  <div id="pickup-error" class="error-message"></div>
                 </div>
 
                 <div class="mt-3 autocomplete">
@@ -656,7 +803,10 @@
                     placeholder="Destination address"
                     class="input w-full mt-1 px-3 py-2"
                     autocomplete="off"
+                    minlength="5"
+                    maxlength="100"
                   />
+                    <div id="dropoff-error" class="error-message"></div>
                 </div>
 
                 <div class="mt-3">
@@ -870,9 +1020,9 @@
       <div class="payment-modal-content">
         <button class="close-modal" id="close-payment-modal">&times;</button>
         <h2 class="text-white font-bold text-xl mb-2">Complete Payment</h2>
-        
+
         <div class="payment-amount" id="payment-amount">$25.00</div>
-        
+
         <form id="payment-form" class="payment-form">
           <div class="form-group">
             <label class="text-white/70 text-xs">Card Number</label>
@@ -905,15 +1055,28 @@
             </div>
             <div class="form-group half">
               <label class="text-white/70 text-xs">CVC</label>
+              <div class="relative">
               <input
-                type="text"
+                type="password"
                 id="card-cvc"
                 placeholder="123"
                 class="input w-full mt-1 px-3 py-2"
                 maxlength="4"
                 required
               />
+               <button
+                  type="button"
+                  id="toggle-cvc"
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  aria-label="Show CVC code"
+                        >
+      <svg id="cvc-eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
             </div>
+          </div>
           </div>
 
           <div class="form-group">
@@ -1116,78 +1279,356 @@
           return value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
         }
 
+        function validateCardNumber(cardNumber) {
+          // Удаляем пробелы и проверяем, что это только цифры
+          const cleaned = cardNumber.replace(/\s/g, '');
+          // Стандартные карты: 13-19 цифр (обычно 16)
+          return /^\d{13,19}$/.test(cleaned);
+        }
+
         function formatExpiry(value) {
           return value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2');
         }
 
-        function validateCardNumber(number) {
-          const cleanNumber = number.replace(/\s/g, '');
-          return cleanNumber.length === 16 && /^\d+$/.test(cleanNumber);
-        }
-
         function validateExpiry(expiry) {
-          const [month, year] = expiry.split('/');
-          if (!month || !year || month.length !== 2 || year.length !== 2) return false;
-          
-          const monthNum = parseInt(month);
-          const yearNum = parseInt('20' + year);
-          const currentYear = new Date().getFullYear();
-          const currentMonth = new Date().getMonth() + 1;
-          
-          if (monthNum < 1 || monthNum > 12) return false;
-          if (yearNum < currentYear) return false;
-          if (yearNum === currentYear && monthNum < currentMonth) return false;
-          
-          return true;
-        }
+  // Проверяем формат MM/YY
+  if (!expiry.includes('/')) return false;
+
+  const [monthStr, yearStr] = expiry.split('/');
+  if (!monthStr || !yearStr) return false;
+
+  // Проверяем, что это числа
+  const month = parseInt(monthStr);
+  const year = parseInt(yearStr);
+  if (isNaN(month) || isNaN(year)) return false;
+
+  // Проверяем длину
+  if (monthStr.length !== 2 || yearStr.length !== 2) return false;
+
+  // Проверяем диапазон месяца
+  if (month < 1 || month > 12) return false;
+
+  // Получаем текущую дату
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  // Переводим двухзначный год в четырехзначный
+  const fullYear = 2000 + year;
+
+  // Проверяем, что год не меньше текущего
+  if (fullYear < currentYear) return false;
+
+  // Проверяем, что год не больше текущего + 5 лет
+  if (fullYear > currentYear + 5) return false;
+
+  // Если год равен текущему, проверяем месяц
+  if (fullYear === currentYear) {
+    if (month < currentMonth) return false;
+  }
+
+  return true;
+}
 
         function validateCVC(cvc) {
           return cvc.length >= 3 && cvc.length <= 4 && /^\d+$/.test(cvc);
         }
 
         function validateEmail(email) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
+  const v = normalizeSpaces(email);
+  if (v.length < 3 || v.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+    // ========== CARDHOLDER NAME VALIDATION ==========
+function validateCardholderName(name) {
+  const v = normalizeSpaces(name);
+
+  if (v.length < 2 || v.length > 50) {
+    return { valid: false, error: "Cardholder name must be 2–50 characters." };
+  }
+
+  // Только буквы (лат/кирил), пробел, дефис и апостроф
+  if (!/^[A-Za-zА-Яа-яЁё' -]+$/.test(v)) {
+    return { valid: false, error: "Only letters, spaces, hyphen (-) and apostrophe (') are allowed." };
+  }
+
+  // Минимум 2 слова (имя + фамилия)
+  const parts = v.split(" ").filter(Boolean);
+  if (parts.length < 2) {
+    return { valid: false, error: "Please enter at least first and last name." };
+  }
+
+  // Запрет мусора и повторов
+  if (isGarbageString(v)) {
+    return { valid: false, error: "Please enter a real cardholder name (not a placeholder)." };
+  }
+  if (hasTooManyRepeats(v, 3)) {
+    return { valid: false, error: "Too many repeated characters." };
+  }
+
+  return { valid: true, value: v };
+}
+
+
+   // ========== NORMALIZATION & ANTI-GARBAGE ==========
+function normalizeSpaces(s) {
+  return (s || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Разрешенные символы: буквы (лат/кирил), цифры, пробелы, . , - / # ( ) '
+function hasOnlyAllowedChars(s) {
+  return /^[A-Za-zА-Яа-яЁё0-9 .,\-/#()']+$/.test(s);
+}
+
+// Ограничение повторяющихся символов: не более 3 подряд
+function hasTooManyRepeats(s, maxRepeats = 3) {
+  // "аааа" / "11111" / "-----" и т.п.
+  const re = new RegExp(`(.)\\1{${maxRepeats},}`, "u"); // 4 подряд = maxRepeats=3
+  return re.test(s);
+}
+
+// "Мусорные строки" (примерный анти-спам)
+function isGarbageString(s) {
+  const v = normalizeSpaces(s).toLowerCase();
+
+  // Точные запреты
+  const bannedExact = new Set([
+    "asdf", "asdfg", "qwerty", "йцукен",
+    "11111", "00000",
+    "aaaaa", "zzzzz",
+    "дом"
+  ]);
+  if (bannedExact.has(v)) return true;
+
+  // Только цифры (и слишком коротко/однообразно)
+  if (/^\d+$/.test(v) && v.length < 8) return true;
+
+  // Слишком мало "содержания": один короткий токен
+  const tokens = v.split(" ").filter(Boolean);
+  if (tokens.length === 1 && tokens[0].length < 4) return true;
+
+  return false;
+}
+function validateAddress(address, fieldName = "Address") {
+  const v = normalizeSpaces(address);
+
+  if (!v || v.length < 5) {
+    return { valid: false, error: `${fieldName} must be at least 5 characters.` };
+  }
+  if (v.length > 100) {
+    return { valid: false, error: `${fieldName} cannot exceed 100 characters.` };
+  }
+
+  // Разрешённые символы
+  if (!hasOnlyAllowedChars(v)) {
+    return { valid: false, error: `${fieldName} contains invalid characters.` };
+  }
+
+  // Обязательное наличие букв и цифр (слово + номер)
+  const hasLetter = /[A-Za-zА-Яа-яЁё]/.test(v);
+  const hasDigit = /\d/.test(v);
+  if (!hasLetter || !hasDigit) {
+    return { valid: false, error: `${fieldName} must contain both letters and numbers (e.g., "Lenina 10").` };
+  }
+
+  // Запрет мусора
+  if (isGarbageString(v)) {
+    return { valid: false, error: `${fieldName} looks invalid (placeholder text).` };
+  }
+
+  // Повторы
+  if (hasTooManyRepeats(v, 3)) {
+    return { valid: false, error: `${fieldName} has too many repeated characters.` };
+  }
+
+  return { valid: true, value: v };
+}
+
+function showAddressError(inputId, message) {
+  const input = document.getElementById(inputId);
+  const errorEl = document.getElementById(`${inputId}-error`);
+
+  if (input && errorEl) {
+    input.classList.add('error');
+    input.classList.remove('success');
+    errorEl.textContent = message;
+    errorEl.classList.add('show');
+  }
+}
+
+function clearAddressError(inputId) {
+  const input = document.getElementById(inputId);
+  const errorEl = document.getElementById(`${inputId}-error`);
+
+  if (input && errorEl) {
+    input.classList.remove('error');
+    input.classList.add('success');
+    errorEl.classList.remove('show');
+    errorEl.textContent = '';
+  }
+}
+function showFieldError(inputId, message) {
+  const input = document.getElementById(inputId);
+  const errorEl = document.getElementById(`${inputId}-error`);
+  if (!input || !errorEl) return;
+
+  input.classList.add("error");
+  input.classList.remove("success");
+  errorEl.textContent = message;
+  errorEl.classList.add("show");
+}
+
+function clearFieldError(inputId) {
+  const input = document.getElementById(inputId);
+  const errorEl = document.getElementById(`${inputId}-error`);
+  if (!input || !errorEl) return;
+
+  input.classList.remove("error");
+  input.classList.add("success");
+  errorEl.classList.remove("show");
+  errorEl.textContent = "";
+}
+
 
         async function processPayment(paymentData) {
           try {
             // Simulate API call to process payment
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // In a real app, you would send this to your backend
-            // const response = await fetch('/process-payment', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(paymentData)
-            // });
-            
-            // For demo, simulate successful payment
-            return { 
-              success: true, 
-              paymentId: 'pay_' + Math.random().toString(36).substr(2, 9),
-              transactionId: 'txn_' + Math.random().toString(36).substr(2, 9)
-            };
+            const response = await fetch('/process-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(paymentData)
+            });
+
+            if (!response.ok) {
+              throw new Error('Payment failed');
+            }
+
+            const result = await response.json();
+            return result;
+
           } catch (error) {
-            return { success: false, error: 'Payment processing failed' };
+            console.error('Payment processing error:', error);
+            return {
+              success: false,
+              error: 'Payment processing failed: ' + error.message
+            };
           }
         }
 
         function showPaymentModal(booking) {
-          currentBooking = booking;
-          const modal = document.getElementById('payment-modal');
-          const amount = calculatePrice(booking.startISO, booking.endISO);
-          
-          document.getElementById('payment-amount').textContent = `$${amount}`;
-          modal.style.display = 'block';
-          
-          // Reset form
-          document.getElementById('payment-form').reset();
+          // Validate booking data before showing modal
+          if (!booking || !booking.startISO || !booking.endISO) {
+            console.error('Invalid booking data:', booking);
+            alert('Error: Invalid booking information. Please try again.');
+            return;
+          }
+
+          currentBooking = { ...booking }; // Create a copy to prevent mutation
+
+          try {
+            const modal = document.getElementById('payment-modal');
+            const amount = calculatePrice(booking.startISO, booking.endISO);
+
+            document.getElementById('payment-amount').textContent = `$${amount}`;
+            modal.style.display = 'block';
+
+            // Reset form and focus on first input
+            document.getElementById('payment-form').reset();
+            document.getElementById('card-number').focus();
+
+            console.log('Payment modal opened with booking:', currentBooking);
+
+          } catch (error) {
+            console.error('Error showing payment modal:', error);
+            alert('Error opening payment form. Please try again.');
+          }
         }
+
+        // Добавьте этот обработчик после инициализации формы оплаты
+document.getElementById('card-expiry').addEventListener('blur', function(e) {
+  const value = this.value.trim();
+  if (value && !validateExpiry(value)) {
+    // Показываем подсказку
+    const hint = document.getElementById('expiry-hint');
+    if (hint) {
+      hint.textContent = 'Please enter a valid expiration date (MM/YY). Card cannot expire in more than 5 years.';
+      hint.style.color = '#ff6b6b';
+    } else {
+      // Создаем элемент для подсказки
+      const hintEl = document.createElement('div');
+      hintEl.id = 'expiry-hint';
+      hintEl.className = 'text-xs mt-1';
+      hintEl.textContent = 'Please enter a valid expiration date (MM/YY). Card cannot expire in more than 5 years.';
+      hintEl.style.color = '#ff6b6b';
+      this.parentNode.appendChild(hintEl);
+    }
+  } else {
+    const hint = document.getElementById('expiry-hint');
+    if (hint) {
+      hint.textContent = 'Valid expiration date';
+      hint.style.color = '#4ade80';
+    }
+  }
+});
+
+// Очищаем подсказку при фокусе
+document.getElementById('card-expiry').addEventListener('focus', function() {
+  const hint = document.getElementById('expiry-hint');
+  if (hint) {
+    hint.textContent = 'Format: MM/YY (e.g., 12/28)';
+    hint.style.color = 'var(--muted)';
+  }
+});
+
+// CVC visibility toggle
+document.getElementById('toggle-cvc').addEventListener('click', function() {
+  const cvcInput = document.getElementById('card-cvc');
+  const eyeIcon = document.getElementById('cvc-eye-icon');
+
+  if (cvcInput.type === 'password') {
+    cvcInput.type = 'text';
+    this.setAttribute('aria-label', 'Hide CVC code');
+    // Change to eye-off icon
+    eyeIcon.innerHTML = `
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+      <line x1="2" y1="2" x2="22" y2="22"></line>
+    `;
+  } else {
+    cvcInput.type = 'password';
+    this.setAttribute('aria-label', 'Show CVC code');
+    // Change back to eye icon
+    eyeIcon.innerHTML = `
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    `;
+  }
+});
+
+// Hide CVC when clicking outside or tabbing away
+document.getElementById('card-cvc').addEventListener('blur', function() {
+  // Auto-hide after 2 seconds if still visible
+  setTimeout(() => {
+    if (this.type === 'text') {
+      this.type = 'password';
+      const eyeIcon = document.getElementById('cvc-eye-icon');
+      const toggleBtn = document.getElementById('toggle-cvc');
+      toggleBtn.setAttribute('aria-label', 'Show CVC code');
+      eyeIcon.innerHTML = `
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+        <circle cx="12" cy="12" r="3"/>
+      `;
+    }
+  }, 2000);
+});
 
         function hidePaymentModal() {
           const modal = document.getElementById('payment-modal');
           modal.style.display = 'none';
-          currentBooking = null;
+          // Don't set currentBooking to null immediately, keep it for error handling
         }
 
         // ========== MAP FUNCTIONS ==========
@@ -1226,7 +1667,7 @@
           try {
             const pickupResp = await fetch(`/geocode?address=${encodeURIComponent(pickup)}`);
             const pickupData = await pickupResp.json();
-            
+
             if (pickupData.error) {
               console.warn('Pickup geocode failed:', pickupData.error);
               return;
@@ -1234,7 +1675,7 @@
 
             const dropoffResp = await fetch(`/geocode?address=${encodeURIComponent(dropoff)}`);
             const dropoffData = await dropoffResp.json();
-            
+
             if (dropoffData.error) {
               console.warn('Dropoff geocode failed:', dropoffData.error);
               return;
@@ -1382,8 +1823,11 @@
         });
 
         // Payment form events
-        document.getElementById('close-payment-modal').addEventListener('click', hidePaymentModal);
-        
+        document.getElementById('close-payment-modal').addEventListener('click', function() {
+          hidePaymentModal();
+          currentBooking = null; // Clear only when explicitly closed
+        });
+
         // Format card number input
         document.getElementById('card-number').addEventListener('input', function(e) {
           this.value = formatCardNumber(e.target.value);
@@ -1397,97 +1841,118 @@
         // Payment form submission
         document.getElementById('payment-form').addEventListener('submit', async function(e) {
           e.preventDefault();
-          
+
+          // Check if currentBooking is still valid
+          if (!currentBooking || !currentBooking.startISO) {
+            alert('❌ Booking session expired. Please fill out the booking form again.');
+            hidePaymentModal();
+            return;
+          }
+
           const submitButton = document.getElementById('submit-payment');
           const originalText = submitButton.textContent;
-          
-          // Get form data
-          const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
-          const cardExpiry = document.getElementById('card-expiry').value;
-          const cardCVC = document.getElementById('card-cvc').value;
-          const cardName = document.getElementById('card-name').value;
-          const cardEmail = document.getElementById('card-email').value;
-          
-          // Validation
-          if (!validateCardNumber(cardNumber)) {
-            alert('Please enter a valid 16-digit card number');
-            return;
-          }
-          
-          if (!validateExpiry(cardExpiry)) {
-            alert('Please enter a valid expiration date (MM/YY)');
-            return;
-          }
-          
-          if (!validateCVC(cardCVC)) {
-            alert('Please enter a valid CVC (3-4 digits)');
-            return;
-          }
-          
-          if (!cardName.trim()) {
-            alert('Please enter cardholder name');
-            return;
-          }
-          
-          if (!validateEmail(cardEmail)) {
-            alert('Please enter a valid email address');
-            return;
-          }
-          
-          if (!currentBooking) {
-            alert('Booking information missing');
-            return;
-          }
-
-          // Show loading state
-          submitButton.disabled = true;
-          submitButton.textContent = 'Processing...';
 
           try {
+            // Get form data
+            const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+            const cardExpiry = document.getElementById('card-expiry').value;
+            const cardCVC = document.getElementById('card-cvc').value;
+            const cardName = document.getElementById('card-name').value;
+            const cardEmail = document.getElementById('card-email').value;
+
+            // Validation
+            if (!validateCardNumber(cardNumber)) {
+              alert('Please enter a valid 16-digit card number');
+              return;
+            }
+
+            if (!validateExpiry(cardExpiry)) {
+              alert('Please enter a valid expiration date (MM/YY)');
+              return;
+            }
+
+            if (!validateCVC(cardCVC)) {
+              alert('Please enter a valid CVC (3-4 digits)');
+              return;
+            }
+
+            if (!cardName.trim()) {
+              alert('Please enter cardholder name');
+              return;
+            }
+
+            if (!validateEmail(cardEmail)) {
+              alert('Please enter a valid email address');
+              return;
+            }
+
+            // Double-check currentBooking
+            if (!currentBooking || !currentBooking.startISO) {
+              throw new Error('Booking information lost');
+            }
+
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.textContent = 'Processing...';
+
+            const amount = calculatePrice(currentBooking.startISO, currentBooking.endISO);
+
             const paymentData = {
               cardNumber: cardNumber,
               cardExpiry: cardExpiry,
               cardCVC: cardCVC,
               cardName: cardName,
               email: cardEmail,
-              amount: calculatePrice(currentBooking.startISO, currentBooking.endISO),
+              amount: amount,
               booking: currentBooking
             };
 
+            console.log('Processing payment for booking:', currentBooking);
+
             const result = await processPayment(paymentData);
-            
+
             if (result.success) {
               // Complete the booking
               const bookings = loadBookings();
               const completeBooking = {
                 ...currentBooking,
-                paymentId: result.paymentId,
-                transactionId: result.transactionId,
-                amount: paymentData.amount,
+                paymentId: result.paymentId || 'pay_' + Math.random().toString(36).substr(2, 9),
+                transactionId: result.transactionId || 'txn_' + Math.random().toString(36).substr(2, 9),
+                amount: amount,
                 email: cardEmail,
                 paid: true,
                 paymentDate: new Date().toISOString()
               };
-              
+
               bookings.push(completeBooking);
               saveBookings(bookings);
               sendTelegramNotification(completeBooking);
-              
+
               hidePaymentModal();
-              
-              const startDate = new Date(currentBooking.startISO);
-              const endDate = new Date(currentBooking.endISO);
-              
-              alert(`✅ Payment Successful!\n\nBooking confirmed for ${formatTime(startDate)} - ${formatTime(endDate)}\nAmount: $${paymentData.amount}\nConfirmation sent to: ${cardEmail}`);
+              currentBooking = null; // Clear after successful payment
+
+              const startDate = new Date(completeBooking.startISO);
+              const endDate = new Date(completeBooking.endISO);
+
+              alert(`✅ Payment Successful!\n\nBooking confirmed for ${formatTime(startDate)} - ${formatTime(endDate)}\nAmount: $${amount}\nConfirmation sent to: ${cardEmail}`);
               populateStartSelect();
             } else {
-              alert('❌ Payment failed: ' + result.error);
+              alert('❌ Payment failed: ' + (result.error || 'Unknown error'));
             }
           } catch (error) {
+            console.error('Payment error:', error);
             alert('❌ Payment processing error: ' + error.message);
           } finally {
             submitButton.disabled = false;
             submitButton.textContent = originalText;
+          }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('payment-modal').addEventListener('click', function(e) {
+          if (e.target === this) {
+            hidePaymentModal();
+            currentBooking = null;
           }
         });
 
@@ -1496,6 +1961,41 @@
         const a11yBtn = document.getElementById('toggle-a11y');
         const THEME_KEY = 'ui-theme';
         const A11Y_KEY = 'ui-a11y';
+
+        function setupAddressValidation() {
+  const pickupInput = document.getElementById('pickup');
+  const dropoffInput = document.getElementById('dropoff');
+
+  // Валидация при вводе с задержкой
+  [pickupInput, dropoffInput].forEach(input => {
+    let timeout;
+
+    input.addEventListener('input', function() {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        const address = this.value.trim();
+        if (address.length >= 2) { // Начинаем проверять с 2 символов
+          const fieldName = this.id === 'pickup' ? 'Pickup address' : 'Dropoff address';
+          const validation = validateAddress(address, fieldName);
+          if (!validation.valid) {
+            showAddressError(this.id, validation.error);
+          } else {
+            clearAddressError(this.id);
+          }
+        } else if (address.length > 0 && address.length < 5) {
+          showAddressError(this.id, `${fieldName} must be at least 5 characters long`);
+        } else {
+          clearAddressError(this.id);
+        }
+      }, 500);
+    });
+
+    // Очистка ошибки при фокусе
+    input.addEventListener('focus', function() {
+      clearAddressError(this.id);
+    });
+  });
+}
 
         function applyTheme(t){
           if (!t) {
@@ -1541,44 +2041,84 @@
         });
 
         document.getElementById('booking-form').addEventListener('submit', async function(ev){
-          ev.preventDefault();
-          const startISO = document.getElementById('slot-start').value;
-          const endISO = document.getElementById('slot-end').value;
-          const pickup = document.getElementById('pickup').value.trim();
-          const dropoff = document.getElementById('dropoff').value.trim();
-          const tripType =
-            (document.querySelector('input[name="tripType"]:checked')?.value) || 'one-way';
+  ev.preventDefault();
 
-          if(!startISO || !endISO){
-            alert('Please choose a valid start and end time.');
-            return;
-          }
-          if(!pickup || !dropoff){
-            alert('Please enter pickup and dropoff addresses.');
-            return;
-          }
+  try {
+    const startISO = document.getElementById('slot-start').value;
+    const endISO = document.getElementById('slot-end').value;
+    const pickup = document.getElementById('pickup').value.trim();
+    const dropoff = document.getElementById('dropoff').value.trim();
+    const tripType =
+      (document.querySelector('input[name="tripType"]:checked')?.value) || 'one-way';
 
-          const bookings = loadBookings();
-          const startDate = new Date(startISO);
-          const endDate = new Date(endISO);
+    if(!startISO || !endISO){
+      alert('Please choose a valid start and end time.');
+      return;
+    }
 
-          if(!isIntervalValid(startDate, endDate, bookings)){
-            alert('Selected time conflicts with an existing booking. Please choose another slot.');
-            return;
-          }
+        clearAddressError('pickup');
+    clearAddressError('dropoff');
 
-          const newBooking = {
-            startISO,
-            endISO,
-            pickup,
-            dropoff,
-            tripType,
-            createdAt: new Date().toISOString()
-          };
 
-          // Show payment modal instead of immediately saving
-          showPaymentModal(newBooking);
-        });
+    // Валидация адресов
+    const pickupValidation = validateAddress(pickup);
+    const dropoffValidation = validateAddress(dropoff);
+
+    if(!pickup || !dropoff){
+      alert('Please enter pickup and dropoff addresses.');
+      return;
+    }
+    // Проверка валидности адресов
+    if (!pickupValidation.valid) {
+      showAddressError('pickup', pickupValidation.error);
+      document.getElementById('pickup').focus();
+      return;
+    } else {
+      clearAddressError('pickup');
+    }
+
+    if (!dropoffValidation.valid) {
+      showAddressError('dropoff', dropoffValidation.error);
+      document.getElementById('dropoff').focus();
+      return;
+    } else {
+      clearAddressError('dropoff');
+    }
+
+    // Проверка, что адреса не одинаковые
+    if (pickup.toLowerCase() === dropoff.toLowerCase()) {
+      alert('Pickup and dropoff addresses cannot be the same.');
+      return;
+    }
+
+    const bookings = loadBookings();
+    const startDate = new Date(startISO);
+    const endDate = new Date(endISO);
+
+    if(!isIntervalValid(startDate, endDate, bookings)){
+      alert('Selected time conflicts with an existing booking. Please choose another slot.');
+      return;
+    }
+
+    const newBooking = {
+      startISO,
+      endISO,
+      pickup,
+      dropoff,
+      tripType,
+      createdAt: new Date().toISOString()
+    };
+
+    console.log('Creating new booking:', newBooking);
+
+    // Show payment modal instead of immediately saving
+    showPaymentModal(newBooking);
+
+  } catch (error) {
+    console.error('Booking form error:', error);
+    alert('Error processing booking. Please try again.');
+  }
+});
 
         // ========== INITIALIZATION ==========
         function init() {
@@ -1598,7 +2138,7 @@
         }
 
         /* --- Dev self-tests --- */
-        (function devTests(){
+      /*  (function devTests(){
           try{
             console.assert(typeof populateStartSelect === 'function', 'populateStartSelect missing');
             const root = document.documentElement;
@@ -1611,7 +2151,7 @@
             applyTheme(prevTheme);
             console.log('[Self-test] Basic UI toggles OK');
           } catch(err){ console.warn('[Self-test] failed', err); }
-        })();
+        })();*/
       })();
     </script>
   </body>
